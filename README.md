@@ -36,8 +36,8 @@ vm-auth-key=[enter key here]
 panorama-server=192.168.12.4
 
 You should know the panorama server. You can generate a VM-Auth-Key in panorama:
-https://docs.paloaltonetworks.com/vm-series/7-1/vm-series-deployment/bootstrap-the-vm-series-firewall/generate-the-vm-auth-key-on-panorama
-More bootstrap info:
+- https://docs.paloaltonetworks.com/vm-series/7-1/vm-series-deployment/bootstrap-the-vm-series-firewall/generate-the-vm-auth-key-on-panorama
+- More bootstrap info:
 https://docs.paloaltonetworks.com/vm-series/7-1/vm-series-deployment/bootstrap-the-vm-series-firewall
 
 Make sure the right folders are in the storage account; you will need a stub of:
@@ -79,6 +79,6 @@ az group deployment create --name fwsignitespoke --template-file azureDeploy-spo
 Firewalls are deployed internally, so you need a way to access the VNET (like a jump server, VPN, or ExpressRoute)
 
 ## next steps
-Working on improving the 4-interface model
-working on spokes front-loading kubernetes (Azure Kubernetes Services)
-Autoscaling based on load through the standard load balancer
+- Working on improving the 4-interface model
+- working on spokes front-loading kubernetes (Azure Kubernetes Services)
+- Autoscaling based on load through the standard load balancer
