@@ -1,0 +1,64 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "availabilitySetName": {
+            "value": "ignite_spoke_as"
+        },
+        "storageAccountName": {
+            "value": "ignitefwspokestorage"
+        },
+        "vmName": {
+            "value": "ignite-spoke-fw"
+        },
+        "adminUserName": {
+            "value": "pa-admin"
+        },
+        "imageVersion": {
+            "value": "latest"
+        },
+        "imageSku": {
+            "value": "byol"
+        },
+        "vmSize": {
+            "value": "Standard_D4_v2"
+        },
+        "virtualNetworkName": {
+            "value": "cyberrangespokevnet"
+        },
+        "bootStrapStorageAccount":{
+            "value": "ignitefwhubstorage"
+        },
+        "bootStrapStorageAccountPath":{
+            "value": "file-share=bootstrap,share-directory=Azure-Cyber-Range-Spoke"           
+        },
+        "lbName": {
+            "value": "ignite_spoke_lb"
+        },
+        "backendPoolName": {
+            "value": "frontendDMZBackendPool"
+        },
+        "numberOfInstances":{
+            "value": 1
+          },
+        "subnet0Name": {
+            "value": "Mgmt"
+        },
+        "subnet1Name": {
+            "value": "outside"
+        },
+        "subnet2Name": {
+            "value": "inside-lb"
+        },
+
+        "tags": {
+            "value": {
+              "function": "CyberRange",
+              "manager": "ManagerNameHere",
+              "project": "CloudMigration",
+              "owner": "InformationSecurity",
+              "app": "PaloAltoNetworksVirtual"
+            }
+        }
+    }
+}

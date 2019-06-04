@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "virtualNetworkName": {
+      "value": "cyberrangehubvnet"
+    },
+    "virtualNetworkAddressPrefix": {
+      "value": "192.168.0.0/21"
+    },
+    "subnet0Name": {
+      "value": "Mgmt"
+    },
+    "subnet1Name": {
+      "value": "inside"
+    },
+    "subnet2Name": {
+      "value": "outside"
+    },
+    "subnetLBName": {
+      "value": "inside-lb"
+    },
+    "subnet0Prefix": {
+      "value": "192.168.0.0/24"
+    },
+    "subnet1Prefix": {
+      "value": "192.168.1.0/24"
+    },
+    "subnet2Prefix": {
+      "value": "192.168.2.0/24"
+    },
+    "subnetLBPrefix": {
+      "value": "192.168.3.0/24"
+    },
+    "subnetGatewayPrefix": {
+      "value": "192.168.4.0/24"
+    },
+    "hubOutsideNetworkSecurityGroupName": {
+      "value": "cyberrangehubvnetnsg"
+    },
+    "hubGatewayPIPName": {
+      "value": "cyberrangegwpip"
+    },
+    "hubGatewayName": {
+      "value": "cyberrangegw"
+    },
+    "tags": {
+      "value": {
+        "function": "CyberRange",
+        "manager": "ManagerNameHere",
+        "project": "CloudMigration",
+        "owner": "InformationSecurity",
+        "app": "PaloAltoNetworksVirtual"
+      }
+    }
+  }
+}

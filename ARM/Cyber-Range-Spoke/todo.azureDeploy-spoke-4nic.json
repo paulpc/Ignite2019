@@ -1,0 +1,395 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Globally unique lowercase name of your storage account"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of VM-Series VM in the Azure portal"
+            }
+        },
+        
+        "adminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for VM-Series administrator"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for VM-Series administrator"
+            }
+        },
+        "imageVersion": {
+            "type": "string",
+            "defaultValue": "latest",
+            "allowedValues": [
+                "7.1.1",
+                "8.0.0",
+                "latest"
+            ],
+            "metadata": {
+                "description": "PAN-OS version."
+            }
+        },
+        "imageSku": {
+            "type": "string",
+            "defaultValue": "byol",
+            "allowedValues": [
+                "byol",
+                "bundle1",
+                "bundle2"
+            ],
+            "metadata": {
+                "description": "VM-Series model: BYOL or hourly pay-as-you-go (PAYG): Bundle 1 or Bundle 2"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_D4_v2",
+                "Standard_D5_v2"
+            ],
+            "metadata": {
+                "description": "Azure VM size for VM-Series"
+            }
+        },
+        "bootStrapStorageAccount":{
+            "type": "string",
+            "metadata": {
+                "description": "Azure Bootstrap Storage Account Name"
+            }
+        },
+        "bootStrapStorageAccountKey":{
+            "type": "string",
+            "metadata": {
+                "description": "Azure Bootstrap Storage Account Key"
+            }
+        },
+        "bootStrapStorageAccountPath":{
+            "type": "string",
+            "defaultValue":"file-share=pan-bootstrap,share-directory=cyberRangeSpoke",
+            "metadata": {
+                "description": "Azure Bootstrap Storage Account Path - use the following format: file-share=,share-directory=None"
+            }
+        },
+
+        "availabilitySetName": {
+            "type": "string",
+            "defaultValue": "VMSeriesFwAvSet",
+            "metadata": {
+                "description": "Azure Availability Set for VM-Series firewalls"
+            }
+        },
+
+        "virtualNetworkID": {
+            "type": "string",
+            "metadata": {
+                "description": "full ID of the virtual network"
+            },
+            "defaultValue": "panVnet"
+        },
+        "backendPoolName": {
+            "type": "string",
+            "defaultValue": "untrustBackendPool",
+            "metadata": {
+                "description": "Backend Pool name"
+            }
+        },
+        "lbName": {
+            "type": "string",
+            "defaultValue": "paloaltoUntrustLB",
+            "metadata": {
+                "description": "Untrust Load Balancer name - this must already exist"
+            }
+        },
+        "subnet0Name": {
+            "type": "string",
+            "defaultValue": "Mgmt",
+            "metadata": {
+                "description": "Subnet Name for the Mgmt"
+            }
+        },
+        "subnet1Name": {
+            "type": "string",
+            "defaultValue": "Untrust",
+            "metadata": {
+                "description": "Subnet for the Untrust"
+            }
+        },
+        "subnet2Name": {
+            "type": "string",
+            "defaultValue": "Trust",
+            "metadata": {
+                "description": "Subnet for the Trust"
+            }
+        },
+        "subnet1StartAddress": {
+            "type": "string",
+            "defaultValue": "192.168.1.4",
+            "metadata": {
+                "description": "Untrust subnet start address"
+            }
+        },
+        "subnet2StartAddress": {
+            "type": "string",
+            "defaultValue": "192.168.2.4",
+            "metadata": {
+                "description": "Trust subnet start address"
+            }
+        },
+        "subnet3Name": {
+            "type": "string",
+            "defaultValue": "backendSubnet",
+            "metadata": {
+                "description": "Subnet for the Backend Servers"
+            }
+        },
+        "subnet3Prefix": {
+            "type": "string",
+            "defaultValue": "192.168.3.0/24",
+            "metadata": {
+                "description": "Trust BE subnet CIDR"
+            }
+        },
+        "subnet3StartAddress": {
+            "type": "string",
+            "defaultValue": "192.168.3.4",
+            "metadata": {
+                "description": "Backend Server subnet start address"
+            }
+        },
+        "tags": {
+            "type": "object",
+            "defaultValue": {
+                "function": "CyberRange",
+                "manager": "ManagerNameHere",
+                "project": "CloudMigration",
+                "owner":
+                 "InformationSecurity",
+                "app": "PaloAltoNetworksVirtual"
+            }
+        }   
+    },
+    "variables": {
+        "location"   : "[resourceGroup().location]",
+        "apiVersion": "2015-06-15",
+        "imagePublisher": "paloaltonetworks",
+        "imageOffer": "vmseries1",
+        "nicName": "[concat(parameters('vmName'), '-eth')]",
+        "FWPrivateIPAddressUntrust": "[parameters('subnet1StartAddress')]",
+        "FWPrivateIPAddressTrust": "[parameters('subnet2StartAddress')]",
+        "FWPrivateIPAddressBackend": "[parameters('subnet3StartAddress')]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers',parameters('lbName'))]",
+        "customData": "[concat('storage-account=',parameters('bootStrapStorageAccount'),',access-key=',parameters('bootStrapStorageAccountKey'),',',parameters('bootStrapStorageAccountPath'))]",
+        "subnet0Ref": "[concat(parameters('virtualNetworkID'),'/subnets/',parameters('subnet0Name'))]",
+        "subnet1Ref": "[concat(parameters('virtualNetworkID'),'/subnets/',parameters('subnet1Name'))]",
+        "subnet2Ref": "[concat(parameters('virtualNetworkID'),'/subnets/',parameters('subnet2Name'))]",
+        "subnet3Ref": "[concat(parameters('virtualNetworkID'),'/subnets/',parameters('subnet3Name'))]"
+    },
+    "resources": [{
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('nicName'), '0')]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[concat('NetworkInterfaces', '0')]",
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').application]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "ipConfigurations": [{
+                    "name": "[concat('ipconfig', '0')]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "subnet": {
+                            "id": "[variables('subnet0Ref')]"
+                        }
+                    }
+                }]
+            }
+        }, {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('nicName'), '1')]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[concat('NetworkInterfaces', '1')]",
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').application]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "enableIPForwarding": true,
+                "ipConfigurations": [{
+                    "name": "[concat('ipconfig', '1')]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Static",
+                        "privateIPAddress": "[variables('FWPrivateIPAddressUntrust')]",
+                        "subnet": {
+                            "id": "[variables('subnet1Ref')]"
+                        },
+                        "loadBalancerBackendAddressPools": [{
+                            "id": "[concat(variables('lbID'), '/backendAddressPools/',parameters('backendPoolName'))]"
+                        }]
+                    }
+                }]
+            }
+        }, {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('nicName'), '2')]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[concat('NetworkInterfaces', '2')]",
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').application]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "enableIPForwarding": true,
+                "ipConfigurations": [{
+                    "name": "[concat('ipconfig', '2')]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Static",
+                        "privateIPAddress": "[variables('FWPrivateIPAddressTrust')]",
+                        "subnet": {
+                            "id": "[variables('subnet2Ref')]"
+                        }
+                    }
+                }]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('nicName'), '3')]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[concat('NetworkInterfaces', '3')]",
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').application]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "enableIPForwarding": true,
+                "ipConfigurations": [{
+                    "name": "[concat('ipconfig', '3')]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Static",
+                        "privateIPAddress": "[variables('FWPrivateIPAddressBackend')]",
+                        "subnet": {
+                            "id": "[variables('subnet3Ref')]"
+                        }
+                    }
+                }]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('vmName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "firewall",
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').application]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'),'0')]",
+                "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'),'1')]",
+                "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'),'2')]",
+                "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'),'3')]"
+            ],
+            "plan": {
+                "name": "[parameters('imageSku')]",
+                "product": "[variables('imageOffer')]",
+                "publisher": "[variables('imagePublisher')]"
+            },
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(variables('customData'))]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "version": "[parameters('imageVersion')]",
+                        "sku": "[parameters('imageSku')]"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/vhds/', parameters('vmName'), '-', variables('imageOffer'), '-', parameters('imageSku'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [{
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'),'0'))]",
+                        "properties": {
+                            "primary": true
+                        }
+                    }, {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'),'1'))]",
+                        "properties": {
+                            "primary": false
+                        }
+                    }, {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'),'2'))]",
+                        "properties": {
+                            "primary": false
+                        }
+                    },
+                    {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('nicName'),'3'))]",
+                        "properties": {
+                            "primary": false
+                        }
+                    }
+                ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2016-01-01').primaryEndpoints.blob)]"
+                    }
+                }
+            }
+        }
+    ]
+}

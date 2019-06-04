@@ -1,0 +1,175 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "lbName": {
+            "type": "string",
+            "defaultValue": "azureLB01",
+            "metadata": {
+                "description": "Load Balancer name"
+            }
+        },
+        "asName": {
+            "type": "string",
+            "defaultValue": "azureAS01",
+            "metadata": {
+                "description": "Availability Set name"
+            }
+        },
+        "backendPoolName": {
+            "type": "string",
+            "defaultValue": "untrustBackendPool",
+            "metadata": {
+                "description": "Backend Pool name"
+            }
+        },
+        "frontendIP": {
+            "type": "string",
+            "metadata": {
+                "description": "IP Address for the FrontEnd of the Load Balancer"
+            }
+        },
+        "vnetName": {
+            "type":"string",
+            "metadata": {
+                "description":"name of the VNET for the Standard Load Balancer"
+            }
+        },
+        "subnetName": {
+            "type":"string",
+            "metadata": {
+                "description":"name of the subnet for the Standard Load Balancer"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "azureFWStore01",
+            "metadata": {
+                "description": "Storage Account to use with the deployment"
+            }
+        },
+        "tags": {
+            "type": "object",
+            "defaultValue": {
+                "function": "CyberRange",
+                "manager": "ManagerNameHere",
+                "project": "CloudMigration",
+                "owner": "InformationSecurity",
+                "app": "PaloAltoNetworksVirtual"
+            }
+        }   
+    },
+    "variables": {
+        "location"   : "[resourceGroup().location]",
+        "subnetID" : "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '/subnets/',parameters('subnetName'))]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers',parameters('lbName'))]"
+    },
+    "resources": [{
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[parameters('asName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').app]",
+                "owner":"[parameters('tags').owner]"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('storageAccountName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+            "tags": {
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').app]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "accountType": "Standard_LRS"
+            }
+             },
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "name": "[parameters('lbName')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "tags": {
+                "function":"[parameters('tags').function]",
+                "manager":"[parameters('tags').manager]",
+                "project":"[parameters('tags').project]",
+                "app":"[parameters('tags').app]",
+                "owner":"[parameters('tags').owner]"
+            },
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "cb767f0c-0ef9-4926-8142-667758f26677",
+                "frontendIPConfigurations": [{
+                    "name": "LoadBalancerFrontEnd",
+                    "etag": "W/\"41cd9bbd-9fb2-40dd-81a8-bd3d712417f0\"",
+                    "properties": {
+                        "provisioningState": "Succeeded",
+                        "privateIPAddress": "[parameters('frontendIP')]",
+                        "privateIPAllocationMethod": "Static",
+                        "subnet": {
+                            "id": "[variables('subnetID')]"
+                        }
+                    }
+                }],
+                "backendAddressPools": [{
+                    "name": "[parameters('backendPoolName')]",
+                    "etag": "W/\"41cd9bbd-9fb2-40dd-81a8-bd3d712417f0\"",
+                    "properties": {
+                        "provisioningState": "Succeeded"
+                    }
+                }],
+                "loadBalancingRules": [
+					{
+						"properties": {
+							"frontendIPConfiguration": {
+								"id": "[concat(variables('lbID'), '/frontendIpConfigurations/LoadBalancerFrontEnd')]"
+							},
+							"backendAddressPool": {
+								"id": "[concat(variables('lbID'), '/backendAddressPools/',parameters('backendPoolName'))]"
+							},
+							"probe": {
+								"id": "[concat(variables('lbID'), '/probes/lbprobe')]"
+							},
+							"protocol": "All",
+							"frontendPort": 0,
+							"backendPort":  0,
+							"enableFloatingIP": false,
+							"idleTimeoutInMinutes": 4,
+							"loadDistribution": "SourceIPProtocol"
+						},
+						"Name": "lbrule"
+					}
+				],
+				"probes": [
+					{
+						"properties": {
+							"protocol": "Tcp",
+							"port": 22,
+							"intervalInSeconds": 15,
+							"numberOfProbes": 2
+						},
+						"name": "lbprobe"
+					}
+				],
+                "inboundNatRules": [],
+                "outboundNatRules": [],
+                "inboundNatPools": []
+            },
+            "dependsOn": []
+        }
+    ]
+}

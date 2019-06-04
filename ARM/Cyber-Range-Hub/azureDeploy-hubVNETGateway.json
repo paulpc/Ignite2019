@@ -1,0 +1,265 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualNetworkName": {
+            "type": "string",
+            "defaultValue": "VN-hub-vnet",
+            "metadata": {
+              "description": "VNET name"
+            }
+          },
+        "virtualNetworkAddressPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/16",
+            "metadata": {
+              "description": "CIDR for vnet"
+            }
+          },
+        "subnet0Name": {
+            "type": "string",
+            "defaultValue": "Mgmt",
+            "metadata": {
+              "description": "Subnet for Management"
+            }
+          },
+          "subnet1Name": {
+            "type": "string",
+            "defaultValue": "Outside",
+            "metadata": {
+              "description": "Subnet for Untrust"
+            }
+          },
+          "subnet2Name": {
+            "type": "string",
+            "defaultValue": "Inside",
+            "metadata": {
+              "description": "Subnet for Trust"
+            }
+          },
+          "subnetLBName": {
+            "type": "string",
+            "defaultValue": "Inside-LB",
+            "metadata": {
+              "description": "Subnet for the Hub Load Balancer FrontEnd IP"
+            }
+          },
+        "subnet0Prefix": {
+        "type": "string",
+        "defaultValue": "192.168.0.0/24",
+        "metadata": {
+            "description": "Mgmt subnet CIDR"
+        }
+        },
+        "subnet1Prefix": {
+        "type": "string",
+        "defaultValue": "192.168.1.0/24",
+        "metadata": {
+            "description": "Inside subnet CIDR"
+        }
+        },
+        "subnet2Prefix": {
+        "type": "string",
+        "defaultValue": "192.168.2.0/24",
+        "metadata": {
+            "description": "Gen Services subnet CIDR"
+        }
+        },
+        "subnetLBPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.3.0/24",
+            "metadata": {
+                "description": "Gen Services subnet CIDR"
+            }
+        },
+        "subnetGatewayPrefix": {
+          "type": "string",
+          "defaultValue": "192.168.4.0/24",
+          "metadata": {
+              "description": "gateway subnet for the VNET"
+          }
+      },
+        "hubOutsideNetworkSecurityGroupName": {
+            "type": "string",
+            "defaultValue": "hubOutsideNetworkSecurityGroup",
+            "metadata": {
+                "description": "Name for the NSG on the public side "
+            }
+        },
+        "hubGatewayPIPName": {
+            "type": "string",
+            "defaultValue": "hubGatewayPIP",
+            "metadata": {
+                "description": "Name for the Public IP for the gateway "
+            }
+        },
+        "hubGatewayName": {
+          "type": "string",
+          "defaultValue": "hubGateway",
+          "metadata": {
+              "description": "Name for the gateway "
+          }
+      },
+      "tags": {
+        "type": "object",
+        "defaultValue": {
+            "function": "CyberRange",
+            "manager": "ManagerNameHere",
+            "project": "CloudMigration",
+            "owner": "InformationSecurity",
+            "app": "PaloAltoNetworksVirtual"
+        }
+    }
+    },
+    
+    "variables": {
+        "location"   : "[resourceGroup().location]"
+    },
+    "resources": [
+       
+        {
+          "apiVersion": "2015-06-15",
+          "type": "Microsoft.Network/networkSecurityGroups",
+          "name": "[parameters('hubOutsideNetworkSecurityGroupName')]",
+          "location": "[variables('location')]",
+          "properties": {
+            "securityRules": [
+            ]
+          }
+        },
+        {
+            "name": "[parameters('virtualNetworkName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "location": "[variables('location')]",
+            "tags": {
+              "function":"[parameters('tags').function]",
+              "manager":"[parameters('tags').manager]",
+              "project":"[parameters('tags').project]",
+              "app":"[parameters('tags').app]",
+              "owner":"[parameters('tags').owner]"
+          },
+            "apiVersion": "2017-03-01",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', parameters('hubOutsideNetworkSecurityGroupName'))]"
+               
+            ],
+            "properties": {
+              "addressSpace": {
+                "addressPrefixes": [
+                  "[parameters('virtualNetworkAddressPrefix')]"
+                ]
+              },
+              "subnets": [{
+                  "name": "[parameters('subnet0Name')]",
+                  "properties": {
+                    "addressPrefix": "[parameters('subnet0Prefix')]",
+                    "networkSecurityGroup": {
+                      "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('hubOutsideNetworkSecurityGroupName'))]"
+                    }
+                  }
+                },
+                {
+                  "name": "[parameters('subnet1Name')]",
+                  "properties": {
+                    "addressPrefix": "[parameters('subnet1Prefix')]",
+                    "networkSecurityGroup": {
+                      "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('hubOutsideNetworkSecurityGroupName'))]"
+                    }
+                  }
+                },
+                {
+                  "name": "[parameters('subnet2Name')]",
+                  "properties": {
+                    "addressPrefix": "[parameters('subnet2Prefix')]"
+                  }
+                },
+                {
+                    "name": "[parameters('subnetLBName')]",
+                    "properties": {
+                      "addressPrefix": "[parameters('subnetLBPrefix')]"
+                    }
+                },
+                {
+                    "name": "gatewaySubnet",
+                    "properties": {
+                        "addressPrefix": "[parameters('subnetGatewayPrefix')]"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[parameters('hubGatewayPIPName')]",
+            "apiVersion": "2018-12-01",
+            "location": "[variables('location')]",
+            "scale": null,
+            "tags": {
+              "function":"[parameters('tags').function]",
+              "manager":"[parameters('tags').manager]",
+              "project":"[parameters('tags').project]",
+              "app":"[parameters('tags').app]",
+              "owner":"[parameters('tags').owner]"
+            },
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "3dc5b57e-23e8-4460-a7d9-3d2b36323d5e",
+                "ipAddress": "104.43.255.103",
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "ipTags": []
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "name": "[parameters('hubGatewayName')]",
+            "apiVersion": "2018-12-01",
+            "location": "[variables('location')]",
+            "scale": null,
+            "tags": {
+              "function":"[parameters('tags').function]",
+              "manager":"[parameters('tags').manager]",
+              "project":"[parameters('tags').project]",
+              "app":"[parameters('tags').app]",
+              "owner":"[parameters('tags').owner]"
+          },
+            "properties": {
+                "resourceGuid": "c1df72cb-9766-4dc6-a4ca-46718067a101",
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(parameters('hubGatewayName'),'ipconfig')]",
+                        "etag": "W/\"09c3f628-0ecd-4e50-9cc0-5b4088177e6a\"",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('hubGatewayPIPName'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), 'gatewaySubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "sku": {
+                    "name": "Basic",
+                    "tier": "Basic",
+                    "capacity": 2
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased",
+                "enableBgp": false,
+                "activeActive": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('hubGatewayPIPName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+              ]
+        }
+    ]
+}

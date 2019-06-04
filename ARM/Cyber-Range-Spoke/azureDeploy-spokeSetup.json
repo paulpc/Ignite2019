@@ -1,0 +1,303 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "lbName": {
+      "type": "string",
+      "defaultValue": "azureLB01",
+      "metadata": {
+        "description": "Load Balancer name"
+      }
+    },
+    "asName": {
+      "type": "string",
+      "defaultValue": "azureAS01",
+      "metadata": {
+        "description": "Availability Set name"
+      }
+    },
+    "backendPoolName": {
+      "type": "string",
+      "defaultValue": "untrustBackendPool",
+      "metadata": {
+        "description": "Backend Pool name"
+      }
+    },
+    "frontendIP": {
+      "type": "string",
+      "metadata": {
+        "description": "IP Address for the FrontEnd of the Load Balancer"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "azureFWStore01",
+      "metadata": {
+        "description": "Storage Account to use with the deployment"
+      }
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "defaultValue": "VN-Spoke-FW",
+      "metadata": {
+        "description": "VNET name"
+      }
+    },
+    "virtualNetworkAddressPrefix": {
+      "type": "string",
+      "defaultValue": "192.168.64.0/22",
+      "metadata": {
+        "description": "CIDR for vnet"
+      }
+    },
+    "subnet0Name": {
+      "type": "string",
+      "defaultValue": "Mgmt",
+      "metadata": {
+        "description": "Subnet for Management"
+      }
+    },
+    "subnet1Name": {
+      "type": "string",
+      "defaultValue": "inside",
+      "metadata": {
+        "description": "Subnet for Untrust"
+      }
+    },
+    "subnet2Name": {
+      "type": "string",
+      "defaultValue": "outside",
+      "metadata": {
+        "description": "Subnet for Trust"
+      }
+    },
+    "subnetWWWName": {
+      "type": "string",
+      "defaultValue": "backendSubnet",
+      "metadata": {
+        "description": "Subnet for backend"
+      }
+    },
+    "subnet0Prefix": {
+      "type": "string",
+      "defaultValue": "192.168.64.0/24",
+      "metadata": {
+        "description": "Mgmt subnet CIDR"
+      }
+    },
+    "subnet1Prefix": {
+      "type": "string",
+      "defaultValue": "192.168.65.0/24",
+      "metadata": {
+        "description": "Inside subnet CIDR"
+      }
+    },
+    "subnet2Prefix": {
+      "type": "string",
+      "defaultValue": "192.168.66.0/24",
+      "metadata": {
+        "description": "Gen Services subnet CIDR"
+      }
+    },
+    "subnetWWWPrefix": {
+      "type": "string",
+      "defaultValue": "192.168.67.0/24",
+      "metadata": {
+        "description": "backend WWW CIDR"
+      }
+    },
+    "hubLoadBalancerIP": {
+      "type": "string",
+      "defaultValue": "192.168.4.0",
+      "metadata": {
+        "description": "Load Balancer IP in the Hub deployment"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "function": "CyberRange",
+        "manager": "ManagerNameHere",
+        "project": "CloudMigration",
+        "owner": "InformationSecurity",
+        "app": "PaloAltoNetworksVirtual"
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "lbID": "[resourceId('Microsoft.Network/loadBalancers',parameters('lbName'))]",
+    "lbvnetId": "[concat(resourceId('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName')), '/subnets/',parameters('subnet1Name'))]"
+  },
+  "resources": [{
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[parameters('asName')]",
+      "location": "[variables('location')]",
+      "tags": {
+        "function": "[parameters('tags').function]",
+        "manager": "[parameters('tags').manager]",
+        "project": "[parameters('tags').project]",
+        "app": "[parameters('tags').app]",
+        "owner": "[parameters('tags').owner]"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[parameters('storageAccountName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[variables('location')]",
+      "tags": {
+        "function": "[parameters('tags').function]",
+        "manager": "[parameters('tags').manager]",
+        "project": "[parameters('tags').project]",
+        "app": "[parameters('tags').app]",
+        "owner": "[parameters('tags').owner]"
+      },
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "name": "defaultBackendUDR",
+      "type": "Microsoft.Network/routeTables",
+      "apiVersion": "2017-10-01",
+      "location": "[variables('location')]",
+      "tags": {
+        "function": "[parameters('tags').function]",
+        "manager": "[parameters('tags').manager]",
+        "project": "[parameters('tags').project]",
+        "app": "[parameters('tags').app]",
+        "owner": "[parameters('tags').owner]"
+      },
+      "properties": {
+        "disableBgpRoutePropagation": true,
+        "routes": [{
+          "name": "defaultRoute",
+          "properties": {
+            "addressPrefix": "0.0.0.0/0",
+            "nextHopType": "VirtualAppliance",
+            "nextHopIpAddress": "[parameters('hubLoadBalancerIP')]"
+          }
+        }]
+      }
+    },
+    {
+      "name": "[parameters('virtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[variables('location')]",
+      "apiVersion": "2015-06-15",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('virtualNetworkAddressPrefix')]"
+          ]
+        },
+        "subnets": [{
+            "name": "[parameters('subnet0Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnet0Prefix')]"
+            }
+          },
+          {
+            "name": "[parameters('subnet1Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnet1Prefix')]"
+            }
+          },
+          {
+            "name": "[parameters('subnet2Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnet2Prefix')]"
+            }
+          },
+          {
+            "name": "[parameters('subnetWWWName')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnetWWWPrefix')]",
+              "routeTable": {
+                "id": "[resourceId('Microsoft.Network/routeTables', 'defaultBackendUDR')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "sku": {
+        "name": "Standard",
+        "tier": "Regional"
+      },
+      "name": "[parameters('lbName')]",
+      "apiVersion": "2018-01-01",
+      "location": "[variables('location')]",
+      "tags": {
+        "function": "[parameters('tags').function]",
+        "manager": "[parameters('tags').manager]",
+        "project": "[parameters('tags').project]",
+        "app": "[parameters('tags').app]",
+        "owner": "[parameters('tags').owner]"
+      },
+      "scale": null,
+      "properties": {
+        "provisioningState": "Succeeded",
+        "resourceGuid": "cb767f0c-0ef9-4926-8142-667758f26677",
+        "frontendIPConfigurations": [{
+          "name": "LoadBalancerFrontEnd",
+          "etag": "W/\"41cd9bbd-9fb2-40dd-81a8-bd3d712417f0\"",
+          "properties": {
+            "provisioningState": "Succeeded",
+            "privateIPAddress": "[parameters('frontendIP')]",
+            "privateIPAllocationMethod": "Static",
+            "subnet": {
+              "id": "[variables('lbvnetId')]"
+            }
+          }
+        }],
+        "backendAddressPools": [{
+          "name": "[parameters('backendPoolName')]",
+          "etag": "W/\"41cd9bbd-9fb2-40dd-81a8-bd3d712417f0\"",
+          "properties": {
+            "provisioningState": "Succeeded"
+          }
+        }],
+        "loadBalancingRules": [{
+          "properties": {
+            "frontendIPConfiguration": {
+              "id": "[concat(variables('lbID'), '/frontendIpConfigurations/LoadBalancerFrontEnd')]"
+            },
+            "backendAddressPool": {
+              "id": "[concat(variables('lbID'), '/backendAddressPools/',parameters('backendPoolName'))]"
+            },
+            "probe": {
+              "id": "[concat(variables('lbID'), '/probes/lbprobe')]"
+            },
+            "protocol": "All",
+            "frontendPort": 0,
+            "backendPort": 0,
+            "enableFloatingIP": false,
+            "idleTimeoutInMinutes": 4,
+            "loadDistribution": "SourceIPProtocol"
+          },
+          "Name": "lbrule"
+        }],
+        "probes": [{
+          "properties": {
+            "protocol": "Tcp",
+            "port": 22,
+            "intervalInSeconds": 15,
+            "numberOfProbes": 2
+          },
+          "name": "lbprobe"
+        }],
+        "inboundNatRules": [],
+        "outboundNatRules": [],
+        "inboundNatPools": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+      ]
+    }
+  ]
+}

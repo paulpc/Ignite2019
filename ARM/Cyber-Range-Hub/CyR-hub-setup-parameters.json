@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "lbName": {
+            "value":"ignite_hub_lb"
+          },
+          "backendPoolName": {
+            "value":"hubBackendPool"
+          },
+          "asName": {
+            "value":"ignite_hub_as"
+          },
+          "frontendIP":{
+          "value":"192.168.1.10"
+          },
+          "vnetName" :{
+            "value":"cyberrangehubvnet"  
+          },
+          "subnetName": {
+            "value":"inside"
+          },
+          "storageAccountName": {
+            "value": "ignitefwhubstorage"
+        },
+        "tags": {
+          "value": {
+            "function": "CyberRange - HUB",
+            "manager": "ManagerNameHere",
+            "project": "CloudMigration",
+            "owner": "InformationSecurity",
+            "app": "PaloAltoNetworksVirtual"
+          }
+        }
+      }
+    }

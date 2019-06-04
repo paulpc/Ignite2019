@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "lbName": {
+      "value": "ignite_spoke_lb"
+    },
+    "backendPoolName": {
+      "value": "frontendDMZBackendPool"
+    },
+    "asName": {
+      "value": "ignite_spoke_as"
+    },
+    "frontendIP": {
+      "value": "192.168.65.10"
+    },
+    "storageAccountName": {
+      "value": "ignitefwspokestorage"
+    },
+    "virtualNetworkName": {
+      "value": "cyberrangespokevnet"
+    },
+    "virtualNetworkAddressPrefix": {
+      "value": "192.168.64.0/22"
+    },
+    "subnet0Name": {
+      "value": "Mgmt"
+    },
+    "subnet1Name": {
+      "value": "outside"
+    },
+    "subnet2Name": {
+      "value": "inside-lb"
+    },
+    "subnetWWWName": {
+      "value": "inside"
+    },
+    "subnet0Prefix": {
+      "value": "192.168.64.0/24"
+    },
+    "subnet1Prefix": {
+      "value": "192.168.65.0/24"
+    },
+    "subnet2Prefix": {
+      "value": "192.168.66.0/24"
+    },
+    "subnetWWWPrefix": {
+      "value": "192.168.67.0/24"
+    },
+    "hubLoadBalancerIP": {
+      "value": "192.168.1.10"
+    },
+    "tags": {
+      "value": {
+        "function": "CyberRange",
+        "manager": "ManagerNameHere",
+        "project": "CloudMigration",
+        "owner": "InformationSecurity",
+        "app": "PaloAltoNetworksVirtual"
+      }
+  }
+  }
+}

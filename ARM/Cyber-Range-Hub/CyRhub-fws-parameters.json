@@ -1,0 +1,63 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "availabilitySetName": {
+            "value": "ignite_hub_as"
+        },
+        "storageAccountName": {
+            "value": "ignitefwhubstorage"
+        },
+        "bootStrapStorageAccount":{
+            "value": "ignitefwhubstorage"
+        },
+        "bootStrapStorageAccountPath":{
+            "value": "file-share=bootstrap,share-directory=Azure-Cyber-Range-Spoke"           
+        },
+        "vmName": {
+            "value": "ignite-hub-fw"
+        },
+        "adminUserName": {
+            "value": "pa-admin"
+        },
+        "imageVersion": {
+            "value": "latest"
+        },
+        "imageSku": {
+            "value": "byol"
+        },
+        "vmSize": {
+            "value": "Standard_D4_v2"
+        },
+        "numberOfInstances":{
+            "value": 2
+          },
+        "virtualNetworkName": {
+            "value": "cyberrangehubvnet"
+        },
+        "lbName": {
+            "value": "ignite_hub_lb"
+        },
+        "backendPoolName": {
+            "value": "hubBackendPool"
+        },
+        "subnet0Name": {
+            "value": "Mgmt"
+        },
+        "subnet1Name": {
+            "value": "outside"
+        },
+        "subnet2Name": {
+            "value": "inside"
+        },
+        "tags": {
+            "value": {
+              "function": "CyberRange",
+              "manager": "ManagerNameHere",
+              "project": "CloudMigration",
+              "owner": "InformationSecurity",
+              "app": "PaloAltoNetworksVirtual"
+            }
+        }
+    }
+}
